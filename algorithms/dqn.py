@@ -1,7 +1,5 @@
 import os
 import time
-import cProfile
-import pstats
 import random
 import numpy as np
 import tensorflow as tf
@@ -11,7 +9,7 @@ import matplotlib.pyplot as plt
 from AutonomousSystemProject.utils import set_seed
 
 from AutonomousSystemProject.GeneralizedOvercooked import GeneralizedOvercooked
-from AutonomousSystemProject.ReplayBuffer import ReplayBuffer
+from AutonomousSystemProject.algorithms.ReplayBuffer import ReplayBuffer
 
 
 @dataclass
