@@ -1,0 +1,6 @@
+/evaluations
+test_and_try.py
+*.h5
+**/__pycache__/
+/overcooked_ai/
+/.idea/
