@@ -20,7 +20,7 @@ rew_shaping_params = {
 # AGENT 0 IS CHOSEN RANDOMLY
 class GeneralizedOvercooked:
     def __init__(self, layouts, info_level=0, horizon=400, use_r_shaped=False, old_dynamics=False, curriculum_steps=None):
-        self.total_shift_steps = curriculum_steps
+        self.curriculum_steps = curriculum_steps
         self.total_steps = 1
         self.envs = []
 
@@ -36,11 +36,11 @@ class GeneralizedOvercooked:
         self.cur_env = self.envs[0]
         self.observation_space, self.action_space = self.cur_env.observation_space, self.cur_env.action_space
 
-    def _get_curriculum_probs(self):
+    def _get_curriculum_probs(self, sharpness=1.5):
         """Compute a softmax distribution over environment indices,
         starting biased toward the first, then flattening to uniform."""
         num_envs = len(self.envs)
-        progress = min(1.0, self.total_steps / self.total_shift_steps)
+        progress = min(1.0, self.total_steps / self.curriculum_steps)
 
         # Early: sharp peak at first env, Late: peak at last env
         start_logits = np.linspace(1.0, 0.0, num_envs)  # Early preference: env 0
@@ -50,7 +50,6 @@ class GeneralizedOvercooked:
         interpolated_logits = (1 - progress) * start_logits + progress * end_logits
 
         # Optional sharpness to control how strong the bias is
-        sharpness = 10
         logits = interpolated_logits * sharpness
 
         # Softmax to convert to probabilities
@@ -58,7 +57,7 @@ class GeneralizedOvercooked:
         return probs
 
     def reset(self):
-        if self.total_shift_steps:
+        if self.curriculum_steps:
             probs = self._get_curriculum_probs()
             idx = np.random.choice(len(self.envs), p=probs)
         else:

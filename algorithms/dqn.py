@@ -85,14 +85,19 @@ def train_step(replay_obs, replay_next_obs, replay_action, replay_reward, replay
 
 if __name__ == "__main__":
     set_seed()
-    model_path = os.path.join(os.getcwd(), "forced_coordination_dqn.weights.h5")
+    model_path = os.path.join(os.getcwd(), "first_three_dqn.weights.h5")
     """profiler = cProfile.Profile()
     profiler.enable()"""
 
     device = '/gpu:0' if args.cuda and tf.config.list_physical_devices('GPU') else '/cpu:0'
     print(device)
 
-    layouts = ["forced_coordination"]
+    layouts = [
+        "cramped_room",
+        "asymmetric_advantages",
+        "coordination_ring",
+        "counter_circuit_o_1order"
+    ]
     env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True)
 
     input_dim = env.observation_space.shape[0]

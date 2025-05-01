@@ -5,3 +5,4 @@ test_and_try.py
 /overcooked_ai/
 /.idea/
 *events.out*
+.env

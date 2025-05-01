@@ -41,3 +41,18 @@ class DQNAgent:
             q_vals = self.q_network(agents_obs_tensor)
             actions = tf.argmax(q_vals, axis=1).numpy()
         return actions
+
+    def learn(self):
+        """
+        This function should be the one that makes a learning step for the agent when called.
+        Sampling from the batch, calling train_step, synchronizing target and q_net.
+        This should be present in any Agent and so it must be completely uncorrelated from the function
+        that calls it, so all the logic like global_step > args.batch_size etc should be here.
+        """
+        pass
+
+    def add_experience(self):
+        """
+        Add played experience to the ReplayBuffer
+        """
+        pass
