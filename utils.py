@@ -1,10 +1,10 @@
 from PIL import Image
 import cv2
-import os
 import numpy as np
 from tensorflow.python.framework import config as tf_config
 import tensorflow as tf
 import random
+import os
 
 
 ACTION_INDEX_TO_STRING = {
@@ -77,7 +77,7 @@ def show_action_text(actions, timeout):
     cv2.waitKey(timeout)
 
 
-def get_q_values_plt(q_values):
+def get_q_values_plt(q_values, agent1_idx):
     q_values = np.array(q_values)
     assert q_values.shape == (2, 6), "q_values should have shape (2, 6)"
 
@@ -91,7 +91,10 @@ def get_q_values_plt(q_values):
     num_agents = q_values.shape[0]
 
     # Colors in BGR (OpenCV format)
-    agent_colors = [(204, 102, 0), (102, 204, 0), ]
+    if agent1_idx == 1:
+        agent_colors = [(204, 102, 0), (102, 204, 0)]
+    else:
+        agent_colors = [(102, 204, 0), (204, 102, 0)]
 
     # Create white canvas
     img = np.ones((height, width, 3), dtype=np.uint8) * 255
@@ -149,7 +152,7 @@ def get_q_values_plt(q_values):
     cv2.putText(img, "Actions", (int(width / 2 - 30), height - 20), font, 0.6, (0, 0, 0), 1)
     cv2.putText(img, "Q", (10, int(height / 2)), font, 0.6, (0, 0, 0), 1)
 
-    # Draw Y-axis ticks and labels (Q-values)
+    """# Draw Y-axis ticks and labels (Q-values)
     num_ticks = 5  # Number of ticks for the Q-value axis
     tick_step = max_q / num_ticks  # Step size for ticks
     for i in range(num_ticks + 1):
@@ -157,7 +160,7 @@ def get_q_values_plt(q_values):
         tick_x = margin - 10
         tick_y = int(base_y - i * (height - 2 * margin) / num_ticks)
         cv2.putText(img, str(tick_value), (tick_x, tick_y + 5), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)  # Q-value labels
-
+    """
     return img
 
 
@@ -221,7 +224,7 @@ def to_tuple(tensor_tuple):
 
 
 def interpret_state(state_vector, agent_idx):
-    if agent_idx == 0:
+    if agent_idx == 1:
         print("\033[92m------------------------------------------------------------\033[0m")
     else:
         print("\033[94m------------------------------------------------------------\033[0m")
@@ -281,13 +284,15 @@ def interpret_state(state_vector, agent_idx):
     idx += 2
 
     pi_closest_serving = tuple(player_i_features[idx:idx + 2])
-    print(f"Closest serving (dx, dy): {to_tuple(pi_closest_serving)}")
+    print(f"Closest empty counter (dx, dy): {to_tuple(pi_closest_serving)}")
     idx += 2
-    if to_tuple(pi_closest_serving) != (0,0):
+    if to_tuple(pi_closest_serving) != (0, 0):
         print("XXX")
+    if to_tuple(pi_closest_serving) == (3, 0):
+        print("YYY")
 
     pi_closest_empty_counter = tuple(player_i_features[idx:idx + 2])
-    print(f"Closest empty counter (dx, dy): {to_tuple(pi_closest_empty_counter)}")
+    print(f"Closest serving (dx, dy): {to_tuple(pi_closest_empty_counter)}")
     idx += 2
 
     # pi_cloest_soup_n_{onions|tomatoes}
@@ -317,7 +322,7 @@ def interpret_state(state_vector, agent_idx):
         dist = tuple(player_i_dist_to_other_players[j * 2:j * 2 + 2])
         print(f"Distance to other player: {to_tuple(dist)}")
 
-    if agent_idx == 0:
+    if agent_idx == 1:
         print("\033[92m------------------------------------------------------------\033[0m", end="\n\n")
     else:
         print("\033[94m------------------------------------------------------------\033[0m", end="\n\n")
@@ -354,4 +359,4 @@ def interpret_pot_features(pot_features):
         print("  No soup is cooking.")
 
     pot_position = pot_features[8:10]
-    print(f"  Closest pot (dx, dy): {to_tuple(pot_position)}")
+    print(f"  Distance from player (dx, dy): {to_tuple(pot_position)}")

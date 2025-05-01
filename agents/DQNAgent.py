@@ -23,8 +23,8 @@ class DQNAgent:
             except FileNotFoundError:
                 print("Model to load not found")
 
-    def action(self, state):
-        if random.random() <= 0.1:
+    def action(self, state, eps=0.1):
+        if random.random() < eps:
             action = random.choice(range(self.output_dim))
             q_vals = [0] * self.output_dim
             q_vals[action] = 1
@@ -38,7 +38,6 @@ class DQNAgent:
     def actions(self, states):
         with tf.device(self.device):
             agents_obs_tensor = tf.convert_to_tensor(states, dtype=tf.float32)
-
             q_vals = self.q_network(agents_obs_tensor)
             actions = tf.argmax(q_vals, axis=1).numpy()
         return actions

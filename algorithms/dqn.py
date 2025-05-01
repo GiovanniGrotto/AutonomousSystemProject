@@ -1,15 +1,21 @@
 import os
 import time
 import random
+import wandb
 import numpy as np
-import tensorflow as tf
 from tqdm import tqdm
+import tensorflow as tf
+from datetime import datetime
+from dotenv import load_dotenv
 from dataclasses import dataclass
 import matplotlib.pyplot as plt
 from AutonomousSystemProject.utils import set_seed
 
 from AutonomousSystemProject.GeneralizedOvercooked import GeneralizedOvercooked
 from AutonomousSystemProject.algorithms.ReplayBuffer import ReplayBuffer
+
+load_dotenv()  # Loads .env into os.environ
+wandb.login(key=os.getenv("WANDB_API_KEY"))
 
 
 @dataclass
@@ -20,31 +26,36 @@ class args:
     horizon: int = 400
     total_timesteps = 1000000
     num_episodes: int = round(total_timesteps / horizon)
-    learning_rate: float = 3e-5
+    learning_rate: float = 1e-4
     num_envs: int = 1
-    buffer_size: int = total_timesteps * 0.1
-    gamma: float = 0.99
-    tau: float = 1.0
-    target_network_frequency: int = 1000
-    batch_size: int = 32
+    buffer_size: int = 200000#total_timesteps * 0.2
+    gamma: float = 0.9
+    tau: float = 1
+    target_network_frequency: int = 2000
+    batch_size: int = 512
     start_e: float = 1
-    end_e: float = 0.01
-    exploration_fraction: float = 0.30
-    learning_starts: int = buffer_size * 0.8
+    end_e: float = 0.1
+    exploration_fraction: float = 0.7
+    learning_starts: int = 80000
     train_frequency: int = 4
+    clipnorm: float = 1
 
 
 class QNetwork(tf.keras.Model):
     def __init__(self, output_len):
         super(QNetwork, self).__init__()
         self.fc1 = tf.keras.layers.Dense(256, activation='relu')
-        self.fc2 = tf.keras.layers.Dense(64, activation='relu')
-        self.fc3 = tf.keras.layers.Dense(output_len)
+        self.fc2 = tf.keras.layers.Dense(512, activation='relu')
+        self.fc3 = tf.keras.layers.Dense(256, activation='relu')
+        self.fc4 = tf.keras.layers.Dense(64, activation='relu')
+        self.fc5 = tf.keras.layers.Dense(output_len)
 
     def call(self, x):
         x = self.fc1(x)
         x = self.fc2(x)
-        return self.fc3(x)
+        x = self.fc3(x)
+        x = self.fc4(x)
+        return self.fc5(x)
 
 
 def linear_schedule(start_e: float, end_e: float, duration: int, t: int):
@@ -64,8 +75,8 @@ def train_step(replay_obs, replay_next_obs, replay_action, replay_reward, replay
         max_next_q = tf.reduce_max(next_q, axis=1)
         target_q = tf.reshape(replay_reward, [-1]) + args.gamma * max_next_q * (1 - tf.reshape(replay_done, [-1]))
 
-        loss = tf.reduce_mean(tf.square(target_q - q_action))
-        #loss = tf.keras.losses.Huber(delta=1.0)(target_q, q_action)
+        #loss = tf.reduce_mean(tf.square(target_q - q_action))
+        loss = tf.keras.losses.Huber(delta=1.0)(target_q, q_action)
 
     gradients = tape.gradient(loss, q_network.trainable_variables)
     optimizer.apply_gradients(zip(gradients, q_network.trainable_variables))
@@ -74,7 +85,7 @@ def train_step(replay_obs, replay_next_obs, replay_action, replay_reward, replay
 
 if __name__ == "__main__":
     set_seed()
-    model_path = os.path.join(os.getcwd(), "algorithms", "forced_dqn_model.weights.h5")
+    model_path = os.path.join(os.getcwd(), "forced_coordination_dqn.weights.h5")
     """profiler = cProfile.Profile()
     profiler.enable()"""
 
@@ -82,7 +93,7 @@ if __name__ == "__main__":
     print(device)
 
     layouts = ["forced_coordination"]
-    env = GeneralizedOvercooked(layouts, horizon=args.horizon)
+    env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True)
 
     input_dim = env.observation_space.shape[0]
     output_dim = env.action_space.n
@@ -101,7 +112,28 @@ if __name__ == "__main__":
         target_network(tf.convert_to_tensor(np.zeros((1, input_dim)), dtype=tf.float32))  # Build target network on GPU
         target_network.set_weights(q_network.get_weights())
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate, clipnorm=0.5)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate, clipnorm=args.clipnorm)
+
+    # Init wandb
+    wandb.init(
+        project="overcooked",
+        name=f"{q_network.__class__.__name__}_{', '.join(layouts)}_{datetime.now().strftime('%d/%m-%H:%M')}",
+        config={
+            "learning_rate": args.learning_rate,
+            "batch_size": args.batch_size,
+            "exploration_fraction": args.exploration_fraction,
+            "start_e": args.start_e,
+            "end_e": args.end_e,
+            "buffer_size": args.buffer_size,
+            "train_frequency": args.train_frequency,
+            "target_network_frequency": args.target_network_frequency,
+            "tau": args.tau,
+            "clipnorm": args.clipnorm,
+            "total_timesteps": args.total_timesteps,
+            "layout": ", ".join(layouts),
+            "episode_horizon": args.horizon
+        }
+    )
 
     rb = ReplayBuffer(max_size=args.buffer_size, num_envs=args.num_envs, obs_shape=input_dim, action_shape=1)
     rewards_buffer = []
@@ -163,7 +195,9 @@ if __name__ == "__main__":
                     losses.append(loss)
 
                     if global_step % args.target_network_frequency == 0:
-                        target_network.set_weights(q_network.get_weights())
+                        for target_var, source_var in zip(target_network.trainable_variables, q_network.trainable_variables):
+                            target_var.assign(args.tau * source_var + (1.0 - args.tau) * target_var)
+                        #target_network.set_weights(q_network.get_weights())
 
             if global_step % 20000 == 0:
                 q_network.save_weights(model_path)
@@ -175,6 +209,13 @@ if __name__ == "__main__":
             print(f"EPISODE LEN WAS DIFFERENT FROM HORIZION: {ep_len} != {args.horizon}")
 
         rewards_buffer.append(total_reward)
+        wandb.log({
+            "episode_reward": total_reward,
+            "avg_reward_10": np.mean(rewards_buffer[-10:]),
+            "epsilon": epsilon,
+            "loss": np.mean(losses[-10:]) if losses else 0.0,
+            "global_step": global_step,
+        })
 
     plt.plot(losses)
     plt.xlabel("Training step (approx)")
