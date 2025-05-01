@@ -4,3 +4,4 @@ test_and_try.py
 **/__pycache__/
 /overcooked_ai/
 /.idea/
+*events.out*
