@@ -85,7 +85,6 @@ def train_step(replay_obs, replay_next_obs, replay_action, replay_reward, replay
 
 if __name__ == "__main__":
     set_seed()
-    model_path = os.path.join(os.getcwd(), "first_three_dqn.weights.h5")
     """profiler = cProfile.Profile()
     profiler.enable()"""
 
@@ -99,7 +98,7 @@ if __name__ == "__main__":
         "counter_circuit_o_1order"
     ]
     env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True)
-
+    model_path = os.path.join(os.getcwd(), f"{', '.join(layouts)}_dqn.weights.h5")
     input_dim = env.observation_space.shape[0]
     output_dim = env.action_space.n
 

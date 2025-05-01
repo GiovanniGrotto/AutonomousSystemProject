@@ -2,13 +2,15 @@ import numpy as np
 import tensorflow as tf
 import random
 
-from AutonomousSystemProject.algorithms.dqn import QNetwork
+from AutonomousSystemProject.algorithms.dqn import QNetwork, args
+from AutonomousSystemProject.algorithms.ReplayBuffer import ReplayBuffer
 
 
 class DQNAgent:
     def __init__(self, model_path, input_dim, output_dim):
         self.input_dim = input_dim
         self.output_dim = output_dim
+        self.rb = ReplayBuffer(max_size=args.buffer_size, num_envs=args.num_envs, obs_shape=input_dim, action_shape=1)
         self.device = '/gpu:0' if tf.config.list_physical_devices('GPU') else '/cpu:0'
 
         with tf.device(self.device):
@@ -51,8 +53,8 @@ class DQNAgent:
         """
         pass
 
-    def add_experience(self):
+    def add_experience(self, agent_obs, agents_next_obs, agent_action, rew, done):
         """
         Add played experience to the ReplayBuffer
         """
-        pass
+        self.rb.add(agent_obs, agents_next_obs, agent_action, rew, done)

@@ -66,13 +66,13 @@ def evaluate(env, agent1, agent2, n_episodes=5, render=False, save_traj=False):
         rewards_buff.append(tot_reward)
         shaped_rew_buff.append(shaped_tot_reward)
         loop.set_postfix({"avg_rew": np.mean(rewards_buff), "avg_shaped_rew": np.mean(shaped_rew_buff)})
-        save_img_list(img_buff, f"{BASE_DIR}/images_{i}")
-        save_video_from_images(img_buff, f'{BASE_DIR}/trajectory_{i}.avi', fps=1)
+        if save_traj:
+            save_img_list(img_buff, f"{BASE_DIR}/images_{i}")
+            save_video_from_images(img_buff, f'{BASE_DIR}/trajectory_{i}.avi', fps=1)
 
     return rewards_buff, shaped_rew_buff
 
 
-# Remember that dqn train use shaped reward while eval use sparse reward
 if __name__ == "__main__":
     set_seed()
     layouts = ["asymmetric_advantages"]
