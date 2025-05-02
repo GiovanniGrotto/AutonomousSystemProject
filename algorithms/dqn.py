@@ -97,8 +97,12 @@ if __name__ == "__main__":
         "coordination_ring",
         "counter_circuit_o_1order"
     ]
-    env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True)
-    model_path = os.path.join(os.getcwd(), f"{', '.join(layouts)}_dqn.weights.h5")
+    curriculum_steps = None#args.total_timesteps
+    env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True, curriculum_steps=curriculum_steps)
+    if curriculum_steps:
+        model_path = os.path.join(os.getcwd(), f"{', '.join(layouts)}_curriculum_dqn.weights.h5")
+    else:
+        model_path = os.path.join(os.getcwd(), f"{', '.join(layouts)}_dqn.weights.h5")
     input_dim = env.observation_space.shape[0]
     output_dim = env.action_space.n
 
@@ -118,10 +122,13 @@ if __name__ == "__main__":
 
         optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate, clipnorm=args.clipnorm)
 
+    wandb_run_name = f"{q_network.__class__.__name__}_{', '.join(layouts)}_{datetime.now().strftime('%d/%m-%H:%M')}"
+    if curriculum_steps:
+        wandb_run_name += "_curriculum_levels"
     # Init wandb
     wandb.init(
         project="overcooked",
-        name=f"{q_network.__class__.__name__}_{', '.join(layouts)}_{datetime.now().strftime('%d/%m-%H:%M')}",
+        name=wandb_run_name,
         config={
             "learning_rate": args.learning_rate,
             "batch_size": args.batch_size,
@@ -135,7 +142,8 @@ if __name__ == "__main__":
             "clipnorm": args.clipnorm,
             "total_timesteps": args.total_timesteps,
             "layout": ", ".join(layouts),
-            "episode_horizon": args.horizon
+            "episode_horizon": args.horizon,
+            "curriculum_steps": curriculum_steps
         }
     )
 
@@ -150,7 +158,7 @@ if __name__ == "__main__":
     start = time.time()
     losses = []
     for episode in loop:
-        obs = env.reset()
+        obs = env.reset(np.mean(rewards_buffer[-10:]))
         agents_obs, env_state, _ = obs['both_agent_obs'], obs['overcooked_state'], obs['other_agent_env_idx']
         done = False
         total_reward = 0
@@ -185,9 +193,9 @@ if __name__ == "__main__":
             global_step += 1
             ep_len += 1
 
-            avg_rew = 0
+            avg_rew = np.mean(rewards_buffer[-10:])
             if global_step > args.learning_starts and global_step > args.batch_size:
-                avg_rew = np.mean(rewards_buffer[-10:])
+                #avg_rew = np.mean(rewards_buffer[-10:])
                 if global_step % args.train_frequency == 0:
                     # Sample batch from replay buffer and move to GPU
                     replay_obs, replay_next_obs, replay_action, replay_reward, replay_done = rb.sample(args.batch_size)

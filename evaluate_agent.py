@@ -6,6 +6,9 @@ import tensorflow as tf
 import numpy as np
 from utils import get_q_values_plt, save_video_from_images, save_img_list, interpret_state, set_seed
 import cv2
+import pandas as pd
+from itertools import combinations_with_replacement
+from copy import deepcopy
 
 """
 import numpy as np
@@ -73,14 +76,58 @@ def evaluate(env, agent1, agent2, n_episodes=5, render=False, save_traj=False):
     return rewards_buff, shaped_rew_buff
 
 
+def evaluate_all(agent_list, layout_list, n_episodes=5, render=False, save_traj=False):
+    """
+    Evaluate each pair of agents on each layout and return the results as a DataFrame.
+    Returns:
+        pd.DataFrame: Results of evaluations.
+    """
+    results = []
+
+    for layout in layout_list:
+        env = GeneralizedOvercooked([layout], horizon=400, old_dynamics=True, use_r_shaped=True)
+        print(f"Evaluating on: {layout}")
+        for agent1, agent2 in combinations_with_replacement(agent_list, r=2):
+            rewards_buff, shaped_rew_buff = evaluate(
+                env=env,
+                agent1=agent1,
+                agent2=agent2,
+                n_episodes=n_episodes,
+                render=render,
+                save_traj=save_traj
+            )
+
+            result = {
+                'layout': layout,
+                'agent1': agent1.__class__.__name__,
+                'agent2': agent2.__class__.__name__,
+                'avg_reward': np.mean(rewards_buff),
+                'avg_shaped_reward': np.mean(shaped_rew_buff)
+            }
+
+            results.append(result)
+
+    return pd.DataFrame(results)
+
+
 if __name__ == "__main__":
     set_seed()
-    layouts = ["asymmetric_advantages"]
+    layouts = ["counter_circuit_o_1order"]
     horizon = 400
-    env = GeneralizedOvercooked(layouts, horizon=horizon, old_dynamics=True, use_r_shaped=True)
+    #env = GeneralizedOvercooked(layouts, horizon=horizon, old_dynamics=True, use_r_shaped=True)
 
-    dqn_agent = DQNAgent("algorithms/asymmetric_advantages_dqn.weights.h5", env.observation_space.shape[0], env.action_space.n)
+    dqn_agent = DQNAgent(
+        "algorithms/saved_models/cramped_room, asymmetric_advantages, coordination_ring, counter_circuit_o_1order_dqn.weights.h5", env.observation_space.shape[0], env.action_space.n)
     random_agent = RandomAgent(env.action_space.n)
-    print(evaluate(env, dqn_agent, dqn_agent, save_traj=True, render=False))
-
+    #print(evaluate(env, dqn_agent, dqn_agent, save_traj=True, render=False))
+    print(
+        evaluate_all(
+            agent_list=[random_agent, dqn_agent],
+            layout_list=["cramped_room",
+             "asymmetric_advantages",
+             "coordination_ring",
+             "counter_circuit_o_1order"
+             ]
+        )
+    )
 

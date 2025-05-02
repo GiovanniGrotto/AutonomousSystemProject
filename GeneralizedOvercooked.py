@@ -23,6 +23,7 @@ class GeneralizedOvercooked:
         self.curriculum_steps = curriculum_steps
         self.total_steps = 1
         self.envs = []
+        self.curriculum_level = 0
 
         for layout in layouts:
             if use_r_shaped:
@@ -40,7 +41,7 @@ class GeneralizedOvercooked:
         """Compute a softmax distribution over environment indices,
         starting biased toward the first, then flattening to uniform."""
         num_envs = len(self.envs)
-        progress = min(1.0, self.total_steps / self.curriculum_steps)
+        progress = self.total_steps / self.curriculum_steps
 
         # Early: sharp peak at first env, Late: peak at last env
         start_logits = np.linspace(1.0, 0.0, num_envs)  # Early preference: env 0
@@ -56,10 +57,19 @@ class GeneralizedOvercooked:
         probs = np.exp(logits) / np.sum(np.exp(logits))
         return probs
 
-    def reset(self):
+    def reset(self, avg_rew=None):
         if self.curriculum_steps:
             probs = self._get_curriculum_probs()
             idx = np.random.choice(len(self.envs), p=probs)
+        elif avg_rew:
+            if avg_rew > 50:
+                self.curriculum_level = min(len(self.envs), self.curriculum_level+1)
+                if self.curriculum_level < len(self.envs):
+                    print(f"Updated curriculum level to: {self.curriculum_level}")
+                    print(f"New layout: {self.envs[self.curriculum_level].base_env.mdp.layout_name}")
+            idx = self.curriculum_level
+            if self.curriculum_level == len(self.envs):  # Here we have reached the reward goal in each env, so now sample equally
+                idx = random.randint(0, len(self.envs) - 1)
         else:
             idx = random.randint(0, len(self.envs)-1)
         self.cur_env = self.envs[idx]
