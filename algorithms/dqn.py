@@ -17,6 +17,8 @@ from AutonomousSystemProject.algorithms.ReplayBuffer import ReplayBuffer
 load_dotenv()  # Loads .env into os.environ
 wandb.login(key=os.getenv("WANDB_API_KEY"))
 
+MODELS_FOLDER = 'saved_models'
+
 
 @dataclass
 class args:
@@ -28,7 +30,7 @@ class args:
     num_episodes: int = round(total_timesteps / horizon)
     learning_rate: float = 1e-4
     num_envs: int = 1
-    buffer_size: int = 200000#total_timesteps * 0.2
+    buffer_size: int = 200000  # total_timesteps * 0.2
     gamma: float = 0.9
     tau: float = 1
     target_network_frequency: int = 2000
@@ -58,11 +60,6 @@ class QNetwork(tf.keras.Model):
         return self.fc5(x)
 
 
-def linear_schedule(start_e: float, end_e: float, duration: int, t: int):
-    slope = (end_e - start_e) / duration
-    return max(slope * t + start_e, end_e)
-
-
 @tf.function
 def train_step(replay_obs, replay_next_obs, replay_action, replay_reward, replay_done):
     with tf.GradientTape() as tape:
@@ -75,7 +72,7 @@ def train_step(replay_obs, replay_next_obs, replay_action, replay_reward, replay
         max_next_q = tf.reduce_max(next_q, axis=1)
         target_q = tf.reshape(replay_reward, [-1]) + args.gamma * max_next_q * (1 - tf.reshape(replay_done, [-1]))
 
-        #loss = tf.reduce_mean(tf.square(target_q - q_action))
+        # loss = tf.reduce_mean(tf.square(target_q - q_action))
         loss = tf.keras.losses.Huber(delta=1.0)(target_q, q_action)
 
     gradients = tape.gradient(loss, q_network.trainable_variables)
@@ -97,12 +94,13 @@ if __name__ == "__main__":
         "coordination_ring",
         "counter_circuit_o_1order"
     ]
-    curriculum_steps = None#args.total_timesteps
-    env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True, curriculum_steps=curriculum_steps)
-    if curriculum_steps:
-        model_path = os.path.join(os.getcwd(), f"{', '.join(layouts)}_curriculum_dqn.weights.h5")
+    curriculum_goal = 50
+    env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True,
+                                curriculum_goal=curriculum_goal)
+    if curriculum_goal:
+        model_path = os.path.join(os.getcwd(), MODELS_FOLDER, f"{', '.join(layouts)}_curriculum_dqn.weights.h5")
     else:
-        model_path = os.path.join(os.getcwd(), f"{', '.join(layouts)}_dqn.weights.h5")
+        model_path = os.path.join(os.getcwd(), MODELS_FOLDER, f"{', '.join(layouts)}_dqn.weights.h5")
     input_dim = env.observation_space.shape[0]
     output_dim = env.action_space.n
 
@@ -123,7 +121,7 @@ if __name__ == "__main__":
         optimizer = tf.keras.optimizers.Adam(learning_rate=args.learning_rate, clipnorm=args.clipnorm)
 
     wandb_run_name = f"{q_network.__class__.__name__}_{', '.join(layouts)}_{datetime.now().strftime('%d/%m-%H:%M')}"
-    if curriculum_steps:
+    if curriculum_goal:
         wandb_run_name += "_curriculum_levels"
     # Init wandb
     wandb.init(
@@ -143,31 +141,40 @@ if __name__ == "__main__":
             "total_timesteps": args.total_timesteps,
             "layout": ", ".join(layouts),
             "episode_horizon": args.horizon,
-            "curriculum_steps": curriculum_steps
+            "curriculum_goal": curriculum_goal
         }
     )
 
     rb = ReplayBuffer(max_size=args.buffer_size, num_envs=args.num_envs, obs_shape=input_dim, action_shape=1)
     rewards_buffer = []
     global_step = 0
-
-    epsilon_schedule = [linear_schedule(args.start_e, args.end_e, args.exploration_fraction * args.total_timesteps, t)
-                        for t in range(args.total_timesteps)]
-
+    avg_rew = 0
     loop = tqdm(range(args.num_episodes))
     start = time.time()
     losses = []
+    eps_step_size = (args.end_e - args.start_e) / (args.exploration_fraction * args.total_timesteps - 1)
+    epsilon = args.start_e
     for episode in loop:
-        obs = env.reset(np.mean(rewards_buffer[-10:]))
+        # Reset the environment and check if there's a curriculum promotion (layout change)
+        observation, is_new_layout = env.reset(avg_rew)
+
+        # Boost exploration temporarily if we've switched to a new layout
+        if is_new_layout:
+            # Add padding of zero-reward episodes to prevent premature promotion
+            # This helps avoid promotion due to a lucky high-reward run immediately after the layout change
+            rewards_buffer.extend([0] * 5)
+            esp_increment = max(0, -0.5 * epsilon + 0.45)
+            print(f"Epsilon incremented from {epsilon} to {epsilon + esp_increment}")
+            epsilon = min(0.9, epsilon + esp_increment)
+
         agents_obs, env_state, _ = obs['both_agent_obs'], obs['overcooked_state'], obs['other_agent_env_idx']
         done = False
         total_reward = 0
-        ep_len = 0  # DEBUG purpose
 
         while not done:
             agent1_obs, agent2_obs = agents_obs
 
-            epsilon = epsilon_schedule[global_step]
+            epsilon += eps_step_size
             if random.random() < epsilon:
                 agent1_action = env.action_space.sample()
                 agent2_action = env.action_space.sample()
@@ -191,11 +198,8 @@ if __name__ == "__main__":
             agents_obs = agents_next_obs
             total_reward += (r1 + r2)
             global_step += 1
-            ep_len += 1
 
-            avg_rew = np.mean(rewards_buffer[-10:])
             if global_step > args.learning_starts and global_step > args.batch_size:
-                #avg_rew = np.mean(rewards_buffer[-10:])
                 if global_step % args.train_frequency == 0:
                     # Sample batch from replay buffer and move to GPU
                     replay_obs, replay_next_obs, replay_action, replay_reward, replay_done = rb.sample(args.batch_size)
@@ -207,27 +211,26 @@ if __name__ == "__main__":
                     losses.append(loss)
 
                     if global_step % args.target_network_frequency == 0:
-                        for target_var, source_var in zip(target_network.trainable_variables, q_network.trainable_variables):
+                        for target_var, source_var in zip(target_network.trainable_variables,
+                                                          q_network.trainable_variables):
                             target_var.assign(args.tau * source_var + (1.0 - args.tau) * target_var)
-                        #target_network.set_weights(q_network.get_weights())
 
             if global_step % 20000 == 0:
                 q_network.save_weights(model_path)
 
             step_per_second = int(global_step // (time.time() - start))
-            loop.set_postfix_str(f"{step_per_second}step/s, avg_reward={avg_rew:.1f}, global_step={global_step}, eps:{epsilon:.3f}, loss={np.mean(losses[-10:]):.4f}")
-
-        if ep_len != args.horizon:
-            print(f"EPISODE LEN WAS DIFFERENT FROM HORIZION: {ep_len} != {args.horizon}")
+            loop.set_postfix_str(
+                f"{step_per_second}step/s, avg_reward={avg_rew:.1f}, global_step={global_step}, eps:{epsilon:.3f}, loss={np.mean(losses[-10:]):.4f}")
 
         rewards_buffer.append(total_reward)
         wandb.log({
             "episode_reward": total_reward,
-            "avg_reward_10": np.mean(rewards_buffer[-10:]),
+            "avg_reward_10": avg_rew,
             "epsilon": epsilon,
             "loss": np.mean(losses[-10:]) if losses else 0.0,
             "global_step": global_step,
         })
+        avg_rew = np.mean(rewards_buffer[-10:])
 
     plt.plot(losses)
     plt.xlabel("Training step (approx)")

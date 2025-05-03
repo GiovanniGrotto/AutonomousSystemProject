@@ -30,7 +30,7 @@ def evaluate(env, agent1, agent2, n_episodes=5, render=False, save_traj=False):
     shaped_rew_buff = []
     loop = tqdm(range(n_episodes))
     for i in loop:
-        obs = env.reset()
+        obs, _ = env.reset()
         agents_obs, env_state, other_agent_env_idx = obs['both_agent_obs'], obs['overcooked_state'], obs['other_agent_env_idx']
         done = False
         tot_reward = 0
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     set_seed()
     layouts = ["counter_circuit_o_1order"]
     horizon = 400
-    #env = GeneralizedOvercooked(layouts, horizon=horizon, old_dynamics=True, use_r_shaped=True)
+    env = GeneralizedOvercooked(layouts, horizon=horizon, old_dynamics=True, use_r_shaped=True)
 
     dqn_agent = DQNAgent(
         "algorithms/saved_models/cramped_room, asymmetric_advantages, coordination_ring, counter_circuit_o_1order_dqn.weights.h5", env.observation_space.shape[0], env.action_space.n)
