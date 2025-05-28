@@ -21,11 +21,12 @@ class DQNAgent:
 
             try:
                 self.q_network.load_weights(model_path)
-                print("Model loaded correctly")
+                print(f"Model {self.q_network.__class__.__name__} loaded correctly")
             except FileNotFoundError:
                 print("Model to load not found")
 
     def action(self, state, eps=0.1):
+        state = tf.convert_to_tensor(state, dtype=tf.float32)
         if random.random() < eps:
             action = random.choice(range(self.output_dim))
             q_vals = [0] * self.output_dim
@@ -43,18 +44,3 @@ class DQNAgent:
             q_vals = self.q_network(agents_obs_tensor)
             actions = tf.argmax(q_vals, axis=1).numpy()
         return actions
-
-    def learn(self):
-        """
-        This function should be the one that makes a learning step for the agent when called.
-        Sampling from the batch, calling train_step, synchronizing target and q_net.
-        This should be present in any Agent and so it must be completely uncorrelated from the function
-        that calls it, so all the logic like global_step > args.batch_size etc should be here.
-        """
-        pass
-
-    def add_experience(self, agent_obs, agents_next_obs, agent_action, rew, done):
-        """
-        Add played experience to the ReplayBuffer
-        """
-        self.rb.add(agent_obs, agents_next_obs, agent_action, rew, done)

@@ -8,9 +8,8 @@ import tensorflow as tf
 from datetime import datetime
 from dotenv import load_dotenv
 from dataclasses import dataclass
-import matplotlib.pyplot as plt
-from AutonomousSystemProject.utils import set_seed
 
+from AutonomousSystemProject.utils import set_seed
 from AutonomousSystemProject.GeneralizedOvercooked import GeneralizedOvercooked
 from AutonomousSystemProject.algorithms.ReplayBuffer import ReplayBuffer
 
@@ -82,8 +81,6 @@ def train_step(replay_obs, replay_next_obs, replay_action, replay_reward, replay
 
 if __name__ == "__main__":
     set_seed()
-    """profiler = cProfile.Profile()
-    profiler.enable()"""
 
     device = '/gpu:0' if args.cuda and tf.config.list_physical_devices('GPU') else '/cpu:0'
     print(device)
@@ -92,13 +89,14 @@ if __name__ == "__main__":
         "cramped_room",
         "asymmetric_advantages",
         "coordination_ring",
-        "counter_circuit_o_1order"
+        "forced_coordination"
+        #"counter_circuit_o_1order",
     ]
     curriculum_goal = 50
     env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True,
                                 curriculum_goal=curriculum_goal)
     if curriculum_goal:
-        model_path = os.path.join(os.getcwd(), MODELS_FOLDER, f"{', '.join(layouts)}_curriculum_dqn.weights.h5")
+        model_path = os.path.join(os.getcwd(), MODELS_FOLDER, f"{', '.join(layouts)}_curriculum_{curriculum_goal}_dqn.weights.h5")
     else:
         model_path = os.path.join(os.getcwd(), MODELS_FOLDER, f"{', '.join(layouts)}_dqn.weights.h5")
     input_dim = env.observation_space.shape[0]
@@ -156,7 +154,7 @@ if __name__ == "__main__":
     epsilon = args.start_e
     for episode in loop:
         # Reset the environment and check if there's a curriculum promotion (layout change)
-        observation, is_new_layout = env.reset(avg_rew)
+        obs, is_new_layout = env.reset(avg_rew)
 
         # Boost exploration temporarily if we've switched to a new layout
         if is_new_layout:
@@ -174,7 +172,7 @@ if __name__ == "__main__":
         while not done:
             agent1_obs, agent2_obs = agents_obs
 
-            epsilon += eps_step_size
+            epsilon = max(args.end_e, epsilon+eps_step_size)
             if random.random() < epsilon:
                 agent1_action = env.action_space.sample()
                 agent2_action = env.action_space.sample()
@@ -231,20 +229,3 @@ if __name__ == "__main__":
             "global_step": global_step,
         })
         avg_rew = np.mean(rewards_buffer[-10:])
-
-    plt.plot(losses)
-    plt.xlabel("Training step (approx)")
-    plt.ylabel("Loss")
-    plt.title("Q-Network Training Loss Over Time")
-    plt.grid(True)
-    plt.show()
-
-    plt.plot(rewards_buffer)
-    plt.xlabel("Training step (approx)")
-    plt.ylabel("Avg Reward")
-    plt.title("Q-Network Average Reward Over Time")
-    plt.grid(True)
-    plt.show()
-    """profiler.disable()
-    stats = pstats.Stats(profiler).sort_stats('cumtime')
-    stats.print_stats(25)  # Show top 25 time consumers"""

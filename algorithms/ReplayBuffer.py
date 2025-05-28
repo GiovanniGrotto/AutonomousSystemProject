@@ -2,7 +2,7 @@ import numpy as np
 
 
 class ReplayBuffer:
-    def __init__(self, max_size, num_envs, obs_shape, action_shape, device=None):
+    def __init__(self, max_size, num_envs, obs_shape, action_shape):
         max_size = int(max_size)
         self.max_size = max_size
         self.num_envs = num_envs

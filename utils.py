@@ -77,9 +77,9 @@ def show_action_text(actions, timeout):
     cv2.waitKey(timeout)
 
 
-def get_q_values_plt(q_values, agent1_idx):
+def get_action_values_plt(q_values, agent_idx):
     q_values = np.array(q_values)
-    assert q_values.shape == (2, 6), "q_values should have shape (2, 6)"
+    assert q_values.shape == (2, 6), "values should have shape (2, 6)"
 
     # New dimensions for a smaller canvas
     height, width = 300, 500
@@ -91,7 +91,7 @@ def get_q_values_plt(q_values, agent1_idx):
     num_agents = q_values.shape[0]
 
     # Colors in BGR (OpenCV format)
-    if agent1_idx == 1:
+    if agent_idx == 0:
         agent_colors = [(204, 102, 0), (102, 204, 0)]
     else:
         agent_colors = [(102, 204, 0), (204, 102, 0)]
@@ -128,7 +128,7 @@ def get_q_values_plt(q_values, agent1_idx):
                 thickness=-1
             )
 
-    # Determine max Q per agent
+    # Determine max val per agent
     max_indices = [np.argmax(q_values[agent_idx]) for agent_idx in range(num_agents)]
 
     # Draw action labels
@@ -148,7 +148,7 @@ def get_q_values_plt(q_values, agent1_idx):
         cv2.putText(img, label, (text_x, text_y), font, 0.5, label_color, 1, cv2.LINE_AA)
 
     # Add title and axis labels
-    cv2.putText(img, "Q-Values for Each Agent", (int(width / 2 - 150), 40), font, 0.8, (0, 0, 0), 2)
+    cv2.putText(img, "Action-Values for Each Agent", (int(width / 2 - 150), 40), font, 0.8, (0, 0, 0), 2)
     cv2.putText(img, "Actions", (int(width / 2 - 30), height - 20), font, 0.6, (0, 0, 0), 1)
     cv2.putText(img, "Q", (10, int(height / 2)), font, 0.6, (0, 0, 0), 1)
 
@@ -188,6 +188,11 @@ def save_video_from_images(imgs, output_video_path, fps=30):
         out.write(img)  # Write each image as a frame in the video
 
     out.release()  # Finalize the video writing process
+
+
+def count_params(model):
+    total_params = sum(p.numel() for p in model.parameters())
+    return f"{total_params:,}"
 
 
 def save_img_list(img_list, output_folder):
