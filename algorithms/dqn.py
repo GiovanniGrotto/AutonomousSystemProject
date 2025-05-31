@@ -17,7 +17,7 @@ load_dotenv()  # Loads .env into os.environ
 wandb.login(key=os.getenv("WANDB_API_KEY"))
 
 MODELS_FOLDER = 'saved_models'
-
+os.makedirs(os.path.join(os.getcwd(), MODELS_FOLDER), exist_ok=True)
 
 @dataclass
 class args:

@@ -14,7 +14,7 @@ class PPOAgent:
             self.agent.load_state_dict(torch.load(model_path, map_location=self.device, weights_only=True))
             print(f"Model {self.agent.__class__.__name__} loaded correctly")
         except FileNotFoundError:
-            print("Model to load not found")
+            print(f"Model {self.agent.__class__.__name__} to load not found")
 
     def action(self, state):
         with torch.no_grad():

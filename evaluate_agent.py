@@ -1,18 +1,15 @@
-import time
-
 from tqdm import tqdm
 from GeneralizedOvercooked import GeneralizedOvercooked
 from AutonomousSystemProject.agents.DQNAgent import DQNAgent
 from AutonomousSystemProject.agents.RandomAgent import RandomAgent
 from AutonomousSystemProject.agents.PPOAgent import PPOAgent
 from AutonomousSystemProject.agents.RecPPOAgent import RecPPOAgent
-import tensorflow as tf
 import numpy as np
 from utils import get_action_values_plt, save_video_from_images, save_img_list, interpret_state, set_seed
 import cv2
 import pandas as pd
 from itertools import combinations_with_replacement
-from copy import deepcopy
+import os
 
 # Optional: reset pandas display options before printing
 pd.set_option('display.max_rows', None)  # Show all rows
@@ -22,6 +19,7 @@ pd.set_option('display.max_colwidth', None)  # Show full column contents
 
 
 BASE_DIR = "evaluations"
+os.makedirs(os.path.join(os.getcwd(), BASE_DIR), exist_ok=True)
 
 
 def evaluate(env, agent1, agent2, n_episodes=5, render=False, save_traj=False):
@@ -71,14 +69,14 @@ def evaluate(env, agent1, agent2, n_episodes=5, render=False, save_traj=False):
         rewards_buff.append(tot_reward)
         shaped_rew_buff.append(shaped_tot_reward)
         loop.set_postfix({"avg_rew": np.mean(rewards_buff), "avg_shaped_rew": np.mean(shaped_rew_buff)})
-    if save_traj:
-        save_img_list(img_buff, f"{BASE_DIR}/images_{i}")
-        save_video_from_images(img_buff, f'{BASE_DIR}/trajectory_{i}.avi', fps=1)
+        if save_traj:
+            save_img_list(img_buff, f"{BASE_DIR}/images_{i}")
+            save_video_from_images(img_buff, f'{BASE_DIR}/trajectory_{i}.avi', fps=1)
 
     return rewards_buff, shaped_rew_buff
 
 
-def evaluate_all(agent_list, layout_list, n_episodes=3, render=False, save_traj=False):
+def evaluate_all(agent_list, layout_list, n_episodes=5, render=False, save_traj=False):
     results = []
 
     for layout in layout_list:
@@ -108,26 +106,26 @@ def evaluate_all(agent_list, layout_list, n_episodes=3, render=False, save_traj=
 
 
 if __name__ == "__main__":
-    layouts = ["counter_circuit_o_1order"]
+    layouts = ["asymmetric_advantages"]
     horizon = 400
     env = GeneralizedOvercooked(layouts, horizon=horizon, old_dynamics=True, use_r_shaped=True)
 
     input_dim = env.observation_space.shape[0]
     output_dim = env.action_space.n
 
-    dqn_agent = DQNAgent(
-        "algorithms/model_to_test/dqn/cramped_room, asymmetric_advantages, coordination_ring, counter_circuit_o_1order_curriculum_50_dqn.weights.h5", input_dim, output_dim)
     random_agent = RandomAgent(env.action_space.n)
-    ppo_agent = PPOAgent("algorithms/model_to_test/ppo/counter_circuit.pth", input_dim, output_dim)
-    rec_ppo_agent_1 = RecPPOAgent("algorithms/model_to_test/rec-ppo/counter_circuit_o_1order_rec_clipped_loss_ppo.pth", input_dim, output_dim)
-    rec_ppo_agent_2 = RecPPOAgent("algorithms/model_to_test/rec-ppo/counter_circuit_o_1order_rec_clipped_loss_ppo.pth", input_dim, output_dim)
-    #print(evaluate(env, rec_ppo_agent_1, rec_ppo_agent_2, save_traj=True, render=False))
-    print(
+    dqn_agent = DQNAgent("algorithms/model_to_test/dqn/asymmetric_advantages_dqn.weights.h5", input_dim, output_dim)
+    ppo_agent = PPOAgent("algorithms/model_to_test/ppo/cramped_room.pth", input_dim, output_dim)
+    rec_ppo_agent_1 = RecPPOAgent("algorithms/saved_models/PPO-LSTM_asymmetric_advantages_30-05_20-27.pth", input_dim, output_dim)
+    rec_ppo_agent_2 = RecPPOAgent("algorithms/saved_models/PPO-LSTM_asymmetric_advantages_30-05_20-27.pth", input_dim, output_dim)
+    print(evaluate(env, rec_ppo_agent_1, rec_ppo_agent_2, save_traj=True, render=False))
+    """print(
         evaluate_all(
             agent_list=[random_agent, dqn_agent, ppo_agent, rec_ppo_agent_1, rec_ppo_agent_2],
             layout_list=[
-             "counter_circuit_o_1order"
+             "cramped_room"
              ],
-            save_traj=True
+            save_traj=False
         )
-    )
+    )"""
+

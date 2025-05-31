@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
 import torch.optim as optim
-import wandb
 from dataclasses import dataclass
 import tyro
 import numpy as np
@@ -16,21 +15,23 @@ import os
 from AutonomousSystemProject.GeneralizedOvercooked import GeneralizedOvercooked
 from AutonomousSystemProject.utils import count_params
 
+os.environ["WANDB_SILENT"] = "True"
+import wandb
 load_dotenv()  # Loads .env into os.environ
 wandb.login(key=os.getenv("WANDB_API_KEY"))
 MODELS_FOLDER = 'saved_models'
-
+os.makedirs(os.path.join(os.getcwd(), MODELS_FOLDER), exist_ok=True)
 
 @dataclass
 class Args:
     horizon: int = 400
     cuda: bool = True
-    total_timesteps: int = 1000000
+    total_timesteps: int = int(5e5)
     learning_rate: float = 6e-4
     num_envs: int = 1
     num_agents: int = 2
     num_steps: int = 1200  # longer rollouts help reduce variance
-    gamma: float = 0.99
+    gamma: float = 0.9
     gae_lambda: float = 0.9
     update_epochs: int = 6  # more to stabilize updates
     clip_coef: float = 0.1
@@ -154,21 +155,22 @@ def compute_multiagent_gae(rewards, values, dones, next_value, gamma, gae_lambda
 
 
 if __name__ == "__main__":
-    args = tyro.cli(Args)
-    set_seed(1)
-
-    device = "cuda" if torch.cuda.is_available() and args.cuda else "cpu"
-    print(device)
+    device = "cuda"
 
     layouts = [
-        #"counter_circuit_o_1order",
-        "cramped_room",
-        #"forced_coordination",
-        #"coordination_ring",
-        #"asymmetric_advantages",
+         "counter_circuit_o_1order",
+         "cramped_room",
+         "forced_coordination",
+         "coordination_ring",
+        "asymmetric_advantages",
     ]
     curriculum_goal = None
-    env = GeneralizedOvercooked(layouts, horizon=args.horizon, use_r_shaped=True, old_dynamics=True, curriculum_goal=curriculum_goal)
+
+    set_seed(1)
+    args = tyro.cli(Args)
+
+    env = GeneralizedOvercooked(layouts, horizon=400, use_r_shaped=True, old_dynamics=True,
+                                curriculum_goal=curriculum_goal)
 
     input_dim = env.observation_space.shape[0]
     output_dim = env.action_space.n
@@ -178,8 +180,8 @@ if __name__ == "__main__":
     optimizer = optim.Adam(agent.parameters(), args.learning_rate, eps=1e-5)
 
     #  Logging
-    extra_info = "clipped_loss"
-    wandb_run_name = f"{agent.__class__.__name__}_{extra_info}_{', '.join(layouts)}_{datetime.now().strftime('%d-%m_%H-%M')}"
+    extra_info = ""
+    wandb_run_name = f"PPO-LSTM_{', '.join(layouts)}_{datetime.now().strftime('%d-%m_%H-%M')}"
     if curriculum_goal:
         wandb_run_name += "_curriculum_levels"
     # Init wandb
