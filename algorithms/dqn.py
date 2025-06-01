@@ -9,8 +9,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 from dataclasses import dataclass
 
-from AutonomousSystemProject.utils import set_seed
-from AutonomousSystemProject.GeneralizedOvercooked import GeneralizedOvercooked
+from AutonomousSystemProject.utils.utils import set_seed
+from AutonomousSystemProject.utils.GeneralizedOvercooked import GeneralizedOvercooked
 from AutonomousSystemProject.algorithms.ReplayBuffer import ReplayBuffer
 
 load_dotenv()  # Loads .env into os.environ

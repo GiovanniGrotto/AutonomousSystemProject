@@ -17,7 +17,7 @@ ACTION_INDEX_TO_STRING = {
 }
 
 
-BASE_DIR = "evaluations"
+BASE_DIR = "../evaluations"
 
 
 def set_seed(seed=42):

@@ -9,7 +9,7 @@ from collections import defaultdict, deque
 import time
 
 from AutonomousSystemProject.algorithms.ppo import compute_multiagent_gae, PPOActorCritic
-from AutonomousSystemProject.GeneralizedOvercooked import GeneralizedOvercooked
+from AutonomousSystemProject.utils.GeneralizedOvercooked import GeneralizedOvercooked
 
 
 @dataclass
