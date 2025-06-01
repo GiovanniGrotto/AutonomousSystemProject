@@ -18,7 +18,7 @@ pd.set_option('display.width', None)  # Prevent line wrapping
 pd.set_option('display.max_colwidth', None)  # Show full column contents
 
 
-BASE_DIR = "evaluations"
+BASE_DIR = "../evaluations"
 os.makedirs(os.path.join(os.getcwd(), BASE_DIR), exist_ok=True)
 
 
@@ -114,10 +114,10 @@ if __name__ == "__main__":
     output_dim = env.action_space.n
 
     random_agent = RandomAgent(env.action_space.n)
-    dqn_agent = DQNAgent("algorithms/model_to_test/dqn/asymmetric_advantages_dqn.weights.h5", input_dim, output_dim)
-    ppo_agent = PPOAgent("algorithms/model_to_test/ppo/cramped_room.pth", input_dim, output_dim)
-    rec_ppo_agent_1 = RecPPOAgent("algorithms/saved_models/PPO-LSTM_asymmetric_advantages_30-05_20-27.pth", input_dim, output_dim)
-    rec_ppo_agent_2 = RecPPOAgent("algorithms/saved_models/PPO-LSTM_asymmetric_advantages_30-05_20-27.pth", input_dim, output_dim)
+    dqn_agent = DQNAgent("../algorithms/model_to_test/dqn/asymmetric_advantages_dqn.weights.h5", input_dim, output_dim)
+    ppo_agent = PPOAgent("../algorithms/model_to_test/ppo/cramped_room.pth", input_dim, output_dim)
+    rec_ppo_agent_1 = RecPPOAgent("../algorithms/saved_models/PPO-LSTM_asymmetric_advantages_30-05_20-27.pth", input_dim, output_dim)
+    rec_ppo_agent_2 = RecPPOAgent("../algorithms/saved_models/PPO-LSTM_asymmetric_advantages_30-05_20-27.pth", input_dim, output_dim)
     print(evaluate(env, rec_ppo_agent_1, rec_ppo_agent_2, save_traj=True, render=False))
     """print(
         evaluate_all(
