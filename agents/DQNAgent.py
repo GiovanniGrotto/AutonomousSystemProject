@@ -2,8 +2,8 @@ import numpy as np
 import tensorflow as tf
 import random
 
-from AutonomousSystemProject.algorithms.dqn import QNetwork, args
-from AutonomousSystemProject.algorithms.ReplayBuffer import ReplayBuffer
+from algorithms.dqn import QNetwork, args
+from algorithms.ReplayBuffer import ReplayBuffer
 
 
 class DQNAgent:

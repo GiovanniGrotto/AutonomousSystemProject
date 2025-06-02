@@ -8,8 +8,8 @@ from tqdm import tqdm
 from collections import defaultdict, deque
 import time
 
-from AutonomousSystemProject.algorithms.ppo import compute_multiagent_gae, PPOActorCritic
-from AutonomousSystemProject.utils.GeneralizedOvercooked import GeneralizedOvercooked
+from algorithms.ppo import compute_multiagent_gae, PPOActorCritic
+from utils.GeneralizedOvercooked import GeneralizedOvercooked
 
 
 @dataclass

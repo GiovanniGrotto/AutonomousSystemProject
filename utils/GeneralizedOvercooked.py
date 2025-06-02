@@ -4,7 +4,7 @@ import numpy as np
 
 from overcooked_ai_py.mdp.overcooked_env import OvercookedEnv, Overcooked
 from overcooked_ai_py.mdp.overcooked_mdp import OvercookedGridworld
-from AutonomousSystemProject.utils.utils import load_and_delete_img
+from utils.utils import load_and_delete_img
 
 
 rew_shaping_params = {

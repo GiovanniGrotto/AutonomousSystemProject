@@ -23,7 +23,7 @@ _Note: You have to install the Overcooked-AI environment manually or ensure it's
 Run one of the training scripts:
 
 ```bash
-python algorithms/ppo.py
+python -m algorithms.ppo
 ```
 Thi will run the spicified algorithm in the specified layouts, saving the run on wandb and the checkpoint into the folder saved_models
 
@@ -32,11 +32,11 @@ Thi will run the spicified algorithm in the specified layouts, saving the run on
 Evaluate a trained agent:
 
 ```bash
-python evaluate_agent.py
+python -m utils.evaluate_agent
 ```
 This evaluates a given agent in a layout, saving the trajectory as both a video and a series of PNG images, along with the action values or probabilities for each agent at each state in the evaluations folder.
 
-_Note: For both the scripts the parameters as path to save or agents to use have to be set from the code._
+_Note: For both the scripts the parameters as layouts, path to save or agents to use have to be set from the code._
 
 ---
 

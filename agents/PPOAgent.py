@@ -1,6 +1,6 @@
 import torch
 
-from AutonomousSystemProject.algorithms.ppo import PPOActorCritic
+from algorithms.ppo import PPOActorCritic
 
 
 class PPOAgent:

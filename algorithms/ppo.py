@@ -13,8 +13,8 @@ import time
 import random
 import os
 
-from AutonomousSystemProject.utils.GeneralizedOvercooked import GeneralizedOvercooked
-from AutonomousSystemProject.utils.utils import count_params
+from utils.GeneralizedOvercooked import GeneralizedOvercooked
+from utils.utils import count_params
 
 load_dotenv()  # Loads .env into os.environ
 wandb.login(key=os.getenv("WANDB_API_KEY"))

@@ -1,11 +1,11 @@
 from tqdm import tqdm
-from GeneralizedOvercooked import GeneralizedOvercooked
-from AutonomousSystemProject.agents.DQNAgent import DQNAgent
-from AutonomousSystemProject.agents.RandomAgent import RandomAgent
-from AutonomousSystemProject.agents.PPOAgent import PPOAgent
-from AutonomousSystemProject.agents.RecPPOAgent import RecPPOAgent
+from utils.GeneralizedOvercooked import GeneralizedOvercooked
+from agents.DQNAgent import DQNAgent
+from agents.RandomAgent import RandomAgent
+from agents.PPOAgent import PPOAgent
+from agents.RecPPOAgent import RecPPOAgent
 import numpy as np
-from utils import get_action_values_plt, save_video_from_images, save_img_list, interpret_state, set_seed
+from utils.utils import get_action_values_plt, save_video_from_images, save_img_list, interpret_state, set_seed
 import cv2
 import pandas as pd
 from itertools import combinations_with_replacement

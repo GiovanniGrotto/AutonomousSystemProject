@@ -12,8 +12,8 @@ import time
 import random
 import os
 
-from AutonomousSystemProject.utils.GeneralizedOvercooked import GeneralizedOvercooked
-from AutonomousSystemProject.utils.utils import count_params
+from utils.GeneralizedOvercooked import GeneralizedOvercooked
+from utils.utils import count_params
 
 os.environ["WANDB_SILENT"] = "True"
 import wandb

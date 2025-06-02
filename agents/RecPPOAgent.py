@@ -1,6 +1,6 @@
 import torch
 
-from AutonomousSystemProject.algorithms.rec_ppo import RecurrentPPOActorCritic
+from algorithms.rec_ppo import RecurrentPPOActorCritic
 
 
 class RecPPOAgent:
