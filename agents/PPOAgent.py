@@ -20,8 +20,3 @@ class PPOAgent:
         with torch.no_grad():
             action, probs = self.agent.get_action_and_distribution(torch.tensor(state, dtype=torch.float32))
         return action.cpu().item(), probs.probs.exp().cpu().numpy()
-
-    def actions(self, states):
-        with torch.no_grad():
-            action, probs = self.agent.get_action_and_distribution(torch.tensor(states))
-        return action.cpu().numpy(), probs.probs.exp().cpu().numpy()

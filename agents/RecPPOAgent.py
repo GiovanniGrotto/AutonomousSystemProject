@@ -26,10 +26,5 @@ class RecPPOAgent:
             self.hx = hx
         return action.cpu().item(), probs.probs.exp().cpu().numpy()[0]
 
-    def actions(self, states):
-        with torch.no_grad():
-            action, probs = self.agent.get_action_and_distribution(torch.tensor(states))
-        return action.cpu().numpy(), probs.probs.exp().cpu().numpy()
-
     def init_hidden_state(self):
         self.hx = self.agent.init_hidden(1)

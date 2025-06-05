@@ -37,10 +37,3 @@ class DQNAgent:
             q_vals = self.q_network(state).numpy().squeeze()
             action = np.argmax(q_vals)
         return action, q_vals
-
-    def actions(self, states):
-        with tf.device(self.device):
-            agents_obs_tensor = tf.convert_to_tensor(states, dtype=tf.float32)
-            q_vals = self.q_network(agents_obs_tensor)
-            actions = tf.argmax(q_vals, axis=1).numpy()
-        return actions
